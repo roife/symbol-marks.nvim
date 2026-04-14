@@ -1,5 +1,4 @@
 local api = vim.api
-local fn = vim.fn
 local MAX_COL = vim.v.maxcol
 
 local helper = require("symbol_marks.helper")
@@ -73,6 +72,7 @@ function M.render_matches(bufnr, symbol, start_row, end_row)
   local is_literal = symbol.kind == helper.KIND.LITERAL
   local text = table.concat(lines, "\n")
   local pattern = helper.matchers[symbol.kind].pattern(symbol.text)
+  local regex = not is_literal and vim.regex(pattern) or nil
   while true do
     local start_offset, end_offset
     if is_literal then
@@ -80,9 +80,10 @@ function M.render_matches(bufnr, symbol, start_row, end_row)
       if not start_idx then break end
       start_offset, end_offset = start_idx - 1, end_idx
     else
-      local result = fn.matchstrpos(text, pattern, cursor)
-      if result[2] == -1 or result[1] == "" then break end
-      start_offset, end_offset = result[2], result[3]
+      local start_idx, end_idx = regex:match_str(text:sub(cursor + 1))
+      if not start_idx then break end
+      start_offset = cursor + start_idx
+      end_offset = cursor + end_idx
     end
 
     local local_start_row, start_col = offset_to_pos(line_starts, lines, start_offset)
