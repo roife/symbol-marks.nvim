@@ -7,6 +7,35 @@ local state = require("symbol_marks.state")
 
 local M = {}
 
+local function matcher_cache_key(symbol)
+  if symbol.kind == helper.KIND.WORD then
+    return table.concat({
+      symbol.kind,
+      symbol.text,
+      vim.o.ignorecase and 1 or 0,
+      vim.o.smartcase and 1 or 0,
+    }, ":")
+  end
+  return symbol.kind .. ":" .. symbol.text
+end
+
+local function get_matcher(symbol)
+  local cache_key = matcher_cache_key(symbol)
+  local matcher = symbol.matcher
+  if matcher and matcher.cache_key == cache_key then
+    return matcher.pattern, matcher.regex
+  end
+
+  local pattern = helper.matchers[symbol.kind].pattern(symbol.text)
+  local regex = symbol.kind ~= helper.KIND.LITERAL and vim.regex(pattern) or nil
+  symbol.matcher = {
+    cache_key = cache_key,
+    pattern = pattern,
+    regex = regex,
+  }
+  return pattern, regex
+end
+
 local function offset_to_pos(line_starts, lines, offset)
   local idx = helper.lower_bound(line_starts, function(start) return start < offset + 1 end) - 1
   idx = math.max(idx, 1)
@@ -71,8 +100,7 @@ function M.render_matches(bufnr, symbol, start_row, end_row)
   local priority = vim.hl.priorities.user + symbol.scope
   local is_literal = symbol.kind == helper.KIND.LITERAL
   local text = table.concat(lines, "\n")
-  local pattern = helper.matchers[symbol.kind].pattern(symbol.text)
-  local regex = not is_literal and vim.regex(pattern) or nil
+  local pattern, regex = get_matcher(symbol)
   while true do
     local start_offset, end_offset
     if is_literal then

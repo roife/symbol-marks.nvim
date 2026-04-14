@@ -73,13 +73,9 @@ end
 function M.refresh(bufnr, dirty)
   local buf_state = state.get_buf_state(bufnr)
   if not dirty then return end
-  local ids = vim.tbl_keys(buf_state.symbols.by_id)
-  for _, id in ipairs(ids) do
-    local symbol = state.get_symbol(buf_state, id)
-    if symbol then
-      render.rerender_symbol_range(bufnr, symbol, dirty)
-      if #symbol.mark_ids == 0 then M.delete(bufnr, symbol) end
-    end
+  for _, symbol in pairs(buf_state.symbols.by_id) do
+    render.rerender_symbol_range(bufnr, symbol, dirty)
+    if #symbol.mark_ids == 0 then M.delete(bufnr, symbol) end
   end
 end
 

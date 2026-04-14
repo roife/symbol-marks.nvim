@@ -54,7 +54,8 @@ end
 function M.clear()
   local bufnr = api.nvim_get_current_buf()
   preview.clear(bufnr)
-  for _, symbol in pairs(vim.deepcopy(state.get_buf_state(bufnr).symbols.by_id)) do
+  local symbols_by_id = state.get_buf_state(bufnr).symbols.by_id
+  for _, symbol in pairs(symbols_by_id) do
     symbols.delete(bufnr, symbol)
   end
 end
